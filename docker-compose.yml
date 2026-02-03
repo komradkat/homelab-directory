@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: homelab-directory
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DJANGO_SETTINGS_MODULE=homelab_directory.settings
+    restart: unless-stopped
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    driver: bridge

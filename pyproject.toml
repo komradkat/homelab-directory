@@ -1,0 +1,14 @@
+[project]
+name = "homelab-directory"
+version = "1.0.0"
+description = "Home Lab Master Directory - Service Dashboard"
+requires-python = ">=3.11"
+dependencies = [
+    "django>=5.0,<6.0",
+    "gunicorn>=21.2.0",
+    "whitenoise>=6.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,330 @@
+{% extends 'dashboard/base.html' %}
+
+{% block header_actions %}
+<!-- Network Status Indicator -->
+<div class="flex items-center space-x-2 bg-dark-bg px-4 py-2 rounded-lg border border-dark-border">
+    <i class="bi bi-wifi text-accent"></i>
+    <span class="text-sm font-medium">{{ connection_type }}</span>
+    <span class="text-xs text-gray-400">({{ host_ip }})</span>
+</div>
+
+<!-- Add Service Button -->
+<button onclick="toggleAddServiceModal()" class="flex items-center space-x-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-lg transition-colors">
+    <i class="bi bi-plus-circle"></i>
+    <span>Add Service</span>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Quick Stats (Moved to Top) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-dark-card rounded-lg p-4 border border-dark-border">
+            <div class="flex items-center space-x-3">
+                <i class="bi bi-server text-2xl text-accent"></i>
+                <div>
+                    <p class="text-sm text-gray-400">Total Services</p>
+                    <p class="text-2xl font-bold text-white">{{ total_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-dark-card rounded-lg p-4 border border-dark-border">
+            <div class="flex items-center space-x-3">
+                <i class="bi bi-check-circle text-2xl text-green-500"></i>
+                <div>
+                    <p class="text-sm text-gray-400">Online</p>
+                    <p class="text-2xl font-bold text-white">{{ online_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-dark-card rounded-lg p-4 border border-dark-border">
+            <div class="flex items-center space-x-3">
+                <i class="bi bi-x-circle text-2xl text-red-500"></i>
+                <div>
+                    <p class="text-sm text-gray-400">Offline</p>
+                    <p class="text-2xl font-bold text-white">{{ offline_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="space-y-2">
+        {% for message in messages %}
+        <div class="{% if message.tags == 'success' %}bg-green-500/20 border-green-500{% else %}bg-red-500/20 border-red-500{% endif %} border rounded-lg p-4 text-white">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Services by Category -->
+    {% if services_by_category %}
+        {% for category_key, category_data in services_by_category.items %}
+        <div class="space-y-4">
+            <!-- Category Header -->
+            <div class="flex items-center space-x-3">
+                <h2 class="text-2xl font-bold text-white">{{ category_data.name }}</h2>
+                <span class="bg-accent/20 text-accent px-3 py-1 rounded-full text-sm">{{ category_data.services|length }}</span>
+            </div>
+            
+            <!-- Services Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for item in category_data.services %}
+                <div class="service-card rounded-xl p-6 border border-dark-border relative h-64 flex flex-col">
+                    <!-- Clickable area for opening service -->
+                    <a href="{{ item.url }}" target="_blank" class="block flex-1 flex flex-col">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-accent/20 p-3 rounded-lg">
+                                    <i class="bi {{ item.service.icon_name }} text-3xl text-accent"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-white">{{ item.service.name }}</h3>
+                                    <p class="text-sm text-gray-400">Port {{ item.service.port }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="status-dot {% if item.is_online %}status-online{% else %}status-offline{% endif %}"></span>
+                                <span class="text-xs text-gray-400">{% if item.is_online %}Online{% else %}Offline{% endif %}</span>
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-300 text-sm mb-4 line-clamp-2 flex-1">{{ item.service.description }}</p>
+                        
+                        <div class="pt-4 border-t border-dark-border">
+                            <span class="text-xs text-gray-400 font-mono">{{ item.service.protocol }}://{{ host_ip }}:{{ item.service.port }}</span>
+                        </div>
+                    </a>
+                    
+                    <!-- Edit/Delete Buttons (always visible in lower right) -->
+                    <div class="absolute bottom-4 right-4 flex space-x-2 z-10">
+                        <button type="button" onclick="openEditModal({{ item.service.id }}, '{{ item.service.name|escapejs }}', '{{ item.service.description|escapejs }}', {{ item.service.port }}, '{{ item.service.protocol }}', '{{ item.service.category }}', '{{ item.service.icon_name }}', {{ item.service.order }}); return false;" 
+                                class="bg-blue-500/80 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors text-sm" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" onclick="confirmDelete({{ item.service.id }}, '{{ item.service.name|escapejs }}'); return false;" 
+                                class="bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-lg transition-colors text-sm" title="Delete">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16 bg-dark-card rounded-xl border border-dark-border">
+        <i class="bi bi-inbox text-6xl text-gray-600 mb-4"></i>
+        <h3 class="text-2xl font-bold text-white mb-2">No Services Yet</h3>
+        <p class="text-gray-400 mb-6">Add your first service using the button above or through the admin panel</p>
+        <a href="/admin/" class="inline-flex items-center space-x-2 bg-accent hover:bg-accent-hover text-white px-6 py-3 rounded-lg transition-colors">
+            <i class="bi bi-gear"></i>
+            <span>Go to Admin Panel</span>
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Service Modal -->
+<div id="addServiceModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card rounded-xl border border-dark-border max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-dark-border flex items-center justify-between">
+            <h3 class="text-2xl font-bold text-white">Add New Service</h3>
+            <button onclick="toggleAddServiceModal()" class="text-gray-400 hover:text-white">
+                <i class="bi bi-x-lg text-2xl"></i>
+            </button>
+        </div>
+        
+        <form method="POST" action="{% url 'add_service' %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Service Name</label>
+                {{ form.name }}
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                {{ form.description }}
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                    {{ form.category }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Protocol</label>
+                    {{ form.protocol }}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Port</label>
+                    {{ form.port }}
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Display Order</label>
+                    {{ form.order }}
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Icon Name 
+                    <a href="https://icons.getbootstrap.com/" target="_blank" class="text-accent text-xs hover:underline">(Browse Icons)</a>
+                </label>
+                {{ form.icon_name }}
+            </div>
+            
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="flex-1 bg-accent hover:bg-accent-hover text-white px-6 py-3 rounded-lg transition-colors font-medium">
+                    <i class="bi bi-plus-circle mr-2"></i>Add Service
+                </button>
+                <button type="button" onclick="toggleAddServiceModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors font-medium">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Service Modal -->
+<div id="editServiceModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-dark-card rounded-xl border border-dark-border max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6 border-b border-dark-border flex items-center justify-between">
+            <h3 class="text-2xl font-bold text-white">Edit Service</h3>
+            <button onclick="toggleEditServiceModal()" class="text-gray-400 hover:text-white">
+                <i class="bi bi-x-lg text-2xl"></i>
+            </button>
+        </div>
+        
+        <form method="POST" id="editServiceForm" class="p-6 space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Service Name</label>
+                <input type="text" name="name" id="edit_name" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <textarea name="description" id="edit_description" required rows="3" class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none"></textarea>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                    <select name="category" id="edit_category" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+                        <option value="services">Services</option>
+                        <option value="projects">Projects</option>
+                        <option value="tools">Tools</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Protocol</label>
+                    <select name="protocol" id="edit_protocol" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+                        <option value="http">HTTP</option>
+                        <option value="https">HTTPS</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Port</label>
+                    <input type="number" name="port" id="edit_port" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Display Order</label>
+                    <input type="number" name="order" id="edit_order" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Icon Name 
+                    <a href="https://icons.getbootstrap.com/" target="_blank" class="text-accent text-xs hover:underline">(Browse Icons)</a>
+                </label>
+                <input type="text" name="icon_name" id="edit_icon_name" required class="w-full px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-white focus:border-accent focus:outline-none">
+            </div>
+            
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="flex-1 bg-accent hover:bg-accent-hover text-white px-6 py-3 rounded-lg transition-colors font-medium">
+                    <i class="bi bi-save mr-2"></i>Save Changes
+                </button>
+                <button type="button" onclick="toggleEditServiceModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors font-medium">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleAddServiceModal() {
+    const modal = document.getElementById('addServiceModal');
+    modal.classList.toggle('hidden');
+}
+
+function toggleEditServiceModal() {
+    const modal = document.getElementById('editServiceModal');
+    modal.classList.toggle('hidden');
+}
+
+function openEditModal(id, name, description, port, protocol, category, icon_name, order) {
+    // Set form action
+    document.getElementById('editServiceForm').action = `/edit-service/${id}/`;
+    
+    // Populate form fields
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('edit_port').value = port;
+    document.getElementById('edit_protocol').value = protocol;
+    document.getElementById('edit_category').value = category;
+    document.getElementById('edit_icon_name').value = icon_name;
+    document.getElementById('edit_order').value = order;
+    
+    // Show modal
+    toggleEditServiceModal();
+}
+
+function confirmDelete(id, name) {
+    if (confirm('Are you sure you want to delete "' + name + '"?\n\nThis action cannot be undone.')) {
+        window.location.href = `/delete-service/${id}/`;
+    }
+}
+
+// Close modals on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.getElementById('addServiceModal').classList.add('hidden');
+        document.getElementById('editServiceModal').classList.add('hidden');
+    }
+});
+
+// Close modals on background click
+document.getElementById('addServiceModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.add('hidden');
+    }
+});
+
+document.getElementById('editServiceModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}
