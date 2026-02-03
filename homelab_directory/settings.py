@@ -29,8 +29,9 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '10.0.0.2',
-    '100.*',
+    '10.0.0.2',           # Local LAN IP
+    '100.106.191.17',     # Tailscale IP
+    '100.*',              # All Tailscale IPs (wildcard pattern)
 ]
 
 
