@@ -5,7 +5,8 @@ services:
     build: .
     container_name: homelab-directory
     ports:
-      - "8000:8000"
+      - "10.0.0.2:8000:8000"      # LAN only
+      - "100.106.191.17:8000:8000" # Tailscale only
     volumes:
       - ./data:/app/data
     environment:
